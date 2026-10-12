@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Jadwal Mengajar Asatid</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: #f4f7fc; min-height: 100vh; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; }
+    .header { display: flex; align-items: center; gap: 20px; padding: 25px 30px; background: linear-gradient(135deg, #2c3e50, #34495e); color: #fff; }
+    .header .logo { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #1abc9c; background: #ecf0f1; flex-shrink: 0; }
+    .header .info { flex: 1; }
+    .header .info h1 { font-size: 24px; margin-bottom: 6px; font-weight: 600; letter-spacing: 0.5px; }
+    .header .info p { font-size: 14px; color: #d5dbdb; margin: 2px 0; }
+    .header .info .ta { display: inline-block; background: #1abc9c; color: #fff; padding: 3px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; margin-top: 6px; }
+    .content { padding: 25px 30px 35px; }
+    .title-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .title-section h2 { font-size: 20px; color: #2c3e50; font-weight: 600; }
+    .btn { padding: 8px 18px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: 500; transition: 0.2s; }
+    .btn-primary { background: #1abc9c; color: #fff; }
+    .btn-primary:hover { background: #16a085; }
+    .table-wrapper { overflow-x: auto; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 600px; }
+    th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: center; vertical-align: middle; }
+    th { background: #2c3e50; color: #ecf0f1; font-weight: 600; }
+    tr:nth-child(even) td { background: #fafbfc; }
+    .hari-cell { font-weight: bold; background: #f0f4f8 !important; vertical-align: middle; }
+    .jam-cell { font-weight: 500; background: #f8f9fa; }
+    .guru-cell { font-weight: 600; color: #2c3e50; display: block; }
+    .mapel-cell { font-size: 11px; color: #7f8c8d; display: block; margin-top: 2px; }
+    .empty-cell { color: #ccc; }
+    .istirahat-cell { background: #fff3cd !important; color: #856404; font-style: italic; }
+    .loading, .error { text-align: center; padding: 60px 20px; color: #7f8c8d; }
+    .error { color: #e74c3c; }
+    .footer { text-align: center; padding: 20px; font-size: 12px; color: #95a5a6; }
+    .wali-box { margin-top: 16px; padding: 12px 16px; background: #f8f9fa; border-radius: 8px; font-size: 13px; line-height: 1.8; }
+    .wali-box strong { color: #2c3e50; }
+    .info-note { margin-top: 14px; padding: 10px 14px; background: #eaf7f3; border-left: 4px solid #1abc9c; border-radius: 4px; font-size: 12px; color: #555; }
+    @media print {
+        body { background: #fff; padding: 0; }
+        .container { box-shadow: none; border-radius: 0; }
+        .no-print { display: none !important; }
+        .header { background: #2c3e50 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+    @media (max-width: 600px) {
+        .header { flex-direction: column; text-align: center; padding: 20px; }
+        .header .info h1 { font-size: 20px; }
+        .content { padding: 15px; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <img class="logo" id="logo" src="https://via.placeholder.com/80?text=Logo" alt="Logo" />
+        <div class="info">
+            <h1 id="namaMadrasah">Memuat...</h1>
+            <p id="alamatMadrasah"></p>
+            <span class="ta" id="tahunAjaran"></span>
+        </div>
+    </div>
+    <div class="content">
+        <div class="title-section">
+            <h2>📅 Jadwal Mengajar Asatid/Guru</h2>
+            <button class="btn btn-primary no-print" onclick="window.print()">🖨️ Cetak</button>
+        </div>
+        <div id="jadwalContent">
+            <div class="loading">⏳ Memuat data jadwal...</div>
+        </div>
+    </div>
+    <div class="footer no-print">
+        <span id="footerInfo">Binduk MADIN</span> &copy; <span id="tahunSekarang"></span>
+    </div>
+</div>
+
+<script>
+document.getElementById('tahunSekarang').textContent = new Date().getFullYear();
+
+// ============================================================
+// KONFIGURASI NAMA FILE BACKUP JSON
+// ============================================================
+// Ganti nama file ini sesuai file backup yang Anda upload ke GitHub.
+// Contoh: 'backup_data_2026-10-07.json'
+const NAMA_FILE_JSON = 'data.json';
+
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+async function loadJadwal() {
+    try {
+        const res = await fetch(NAMA_FILE_JSON + '?v=' + Date.now());
+        if (!res.ok) throw new Error('File "' + NAMA_FILE_JSON + '" tidak ditemukan.');
+        const data = await res.json();
+        renderJadwal(data);
+    } catch (err) {
+        document.getElementById('jadwalContent').innerHTML =
+            `<div class="error">❌ ${escapeHtml(err.message)}<br>
+            <small style="color:#7f8c8d;">Pastikan file backup JSON berada di folder yang sama dengan file HTML ini, dan nama file sesuai dengan konfigurasi <code>NAMA_FILE_JSON</code>.</small></div>`;
+    }
+}
+
+function renderJadwal(data) {
+    const madrasah = data.madrasah || {};
+    const jadwal = data.jadwal || [];
+    const guruData = data.guru || [];
+
+    // ===== Header Madrasah =====
+    document.getElementById('namaMadrasah').textContent = madrasah.nama || 'Madrasah Diniyah';
+    if (madrasah.alamat) document.getElementById('alamatMadrasah').textContent = madrasah.alamat;
+    if (madrasah.logo) document.getElementById('logo').src = madrasah.logo;
+    if (madrasah.tahunAjaran) document.getElementById('tahunAjaran').textContent = 'Tahun Ajaran ' + madrasah.tahunAjaran;
+    document.title = 'Jadwal Mengajar - ' + (madrasah.nama || 'Madrasah');
+    document.getElementById('footerInfo').textContent = madrasah.nama || 'Binduk MADIN';
+
+    // ===== Jika tidak ada jadwal =====
+    if (jadwal.length === 0) {
+        document.getElementById('jadwalContent').innerHTML =
+            '<div class="loading">📭 Belum ada data jadwal yang dibuat.</div>';
+        return;
+    }
+
+    // ===== Kumpulkan daftar kelas dari jadwal =====
+    const kelasSet = new Set();
+    jadwal.forEach(j => {
+        if (j.kelas && j.kelas !== 'SEMUA' && !j.isIstirahat) kelasSet.add(j.kelas);
+    });
+    const kelasList = [...kelasSet].sort();
+
+    // ===== Kumpulkan hari (urut standar) =====
+    const hariOrder = ['SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'JUM\'AT', 'SABTU', 'MINGGU'];
+    const hariSet = new Set(jadwal.map(j => j.hari));
+    const hariTampil = hariOrder.filter(h => hariSet.has(h));
+    // Tambahkan hari lain yang tidak ada di urutan standar (jaga-jaga)
+    hariSet.forEach(h => {
+        if (!hariTampil.includes(h)) hariTampil.push(h);
+    });
+
+    // ===== Kumpulkan jam =====
+    const jamSet = new Set();
+    jadwal.forEach(j => {
+        if (j.isIstirahat || j.jam_ke === 'ISTIRAHAT') jamSet.add('ISTIRAHAT');
+        else jamSet.add(String(j.jam_ke));
+    });
+    const jamOrder = ['1', 'ISTIRAHAT', '2'];
+    const jamList = jamOrder.filter(j => jamSet.has(j));
+    // Tambahkan jam lain (jika ada) di urutan sesuai
+    [...jamSet].sort().forEach(j => {
+        if (!jamList.includes(j)) jamList.push(j);
+    });
+    if (jamList.length === 0) jamList.push('1');
+
+    // ===== Build matrix =====
+    const matrix = {};
+    hariTampil.forEach(hari => {
+        matrix[hari] = {};
+        jamList.forEach(jam => {
+            matrix[hari][jam] = {};
+            kelasList.forEach(k => matrix[hari][jam][k] = null);
+        });
+    });
+
+    jadwal.forEach(item => {
+        const jam = (item.isIstirahat || item.jam_ke === 'ISTIRAHAT') ? 'ISTIRAHAT' : String(item.jam_ke);
+        if (matrix[item.hari] && matrix[item.hari][jam]) {
+            if (item.isIstirahat) {
+                kelasList.forEach(k => {
+                    matrix[item.hari][jam][k] = { isIstirahat: true };
+                });
+            } else if (kelasList.includes(item.kelas)) {
+                matrix[item.hari][jam][item.kelas] = item;
+            }
+        }
+    });
+
+    // ===== Build tabel =====
+    let html = '<div class="table-wrapper"><table><thead><tr>';
+    html += '<th>Hari</th><th>Jam</th>';
+    kelasList.forEach(k => html += `<th>${escapeHtml(k)}</th>`);
+    html += '</tr></thead><tbody>';
+
+    hariTampil.forEach(hari => {
+        const rowspan = jamList.length;
+        jamList.forEach((jam, idx) => {
+            const isIstirahat = jam === 'ISTIRAHAT';
+            html += '<tr>';
+            if (idx === 0) {
+                html += `<td class="hari-cell" rowspan="${rowspan}">${escapeHtml(hari)}</td>`;
+            }
+            if (isIstirahat) {
+                html += `<td class="istirahat-cell">Istirahat</td>`;
+            } else {
+                html += `<td class="jam-cell">Jam ke-${escapeHtml(jam)}</td>`;
+            }
+            kelasList.forEach(kelas => {
+                const item = matrix[hari][jam][kelas];
+                if (item && item.isIstirahat) {
+                    html += `<td class="istirahat-cell">Istirahat</td>`;
+                } else if (item && item.guru && item.guru !== '-') {
+                    html += `<td>
+                        <span class="guru-cell">${escapeHtml(item.guru)}</span>
+                        ${item.mapel && item.mapel !== '-' ? `<span class="mapel-cell">${escapeHtml(item.mapel)}</span>` : ''}
+                    </td>`;
+                } else {
+                    html += `<td class="empty-cell">-</td>`;
+                }
+            });
+            html += '</tr>';
+        });
+    });
+
+    html += '</tbody></table></div>';
+
+    // ===== Wali Kelas (dari data guru di JSON backup) =====
+    const waliKelasMap = {};
+    guruData.forEach(g => {
+        if (g.jabatan && g.jabatan.toLowerCase().includes('wali') && g.kelas) {
+            waliKelasMap[g.kelas] = g.nama;
+        }
+    });
+    if (Object.keys(waliKelasMap).length > 0) {
+        html += '<div class="wali-box"><strong>👨‍🏫 Wali Kelas:</strong><br>';
+        const entries = Object.entries(waliKelasMap).sort();
+        html += entries.map(([k, v]) => `${escapeHtml(k)}: ${escapeHtml(v)}`).join(' &nbsp;|&nbsp; ');
+        html += '</div>';
+    }
+
+    // ===== Info tambahan =====
+    const exportedAt = data.exportedAt ? new Date(data.exportedAt).toLocaleDateString('id-ID', {
+        day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    }) : '-';
+    html += `<div class="info-note">🕒 Data diperbarui: <strong>${exportedAt}</strong></div>`;
+
+    document.getElementById('jadwalContent').innerHTML = html;
+}
+
+loadJadwal();
+</script>
+</body>
+</html>

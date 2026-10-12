@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cek Rapor Online</title>
+    <link rel="icon" href="https://your-logo-url.com/logo.png" />
+    <!-- Panggil CSS dan JS -->
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="container">
+            <div class="header-content">
+                <img src="alhilal.jpeg" alt="Logo" class="logo" />
+                <div>
+                    <h1 id="madrasahNama">Madrasah Diniyah</h1>
+                    <p id="madrasahAlamat">Alamat Madrasah</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORM PENCARIAN -->
+    <div class="container">
+        <div class="search-box">
+            <h2>🔍 Cek Rapor Santri</h2>
+            <div class="search-form">
+                <div class="form-group">
+                    <label>NIS / Nama Santri</label>
+                    <input type="text" id="searchInput" placeholder="Masukkan NIS atau Nama..." />
+                </div>
+                <button class="btn-primary" id="btnCari">🔍 Cari</button>
+                <button class="btn-secondary" id="btnReset">↺ Reset</button>
+            </div>
+            <div id="saranContainer" class="saran-container"></div>
+        </div>
+
+        <!-- HASIL RAPOR -->
+        <div id="resultContainer" style="display:none;">
+            <!-- Template rapor akan diisi oleh JS -->
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <div class="container">
+            <p>© 2026 - Sistem Cek Rapor Online</p>
+        </div>
+    </div>
+
+    <!-- Panggil data.json -->
+    <script>
+        // Global variabel untuk menyimpan data
+        let dataSiswa = [];
+        let dataGuru = [];
+        let dataMadrasah = {};
+
+        // Load data.json
+        fetch('data/data.json')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('File data.json tidak ditemukan!');
+                }
+                return response.json();
+            })
+            .then(data => {
+                dataSiswa = data.santri || [];
+                dataGuru = data.guru || [];
+                dataMadrasah = data.madrasah || {};
+
+                // Update header dengan data madrasah
+                if (dataMadrasah.nama) {
+                    document.getElementById('madrasahNama').textContent = dataMadrasah.nama;
+                }
+                if (dataMadrasah.alamat) {
+                    document.getElementById('madrasahAlamat').textContent = dataMadrasah.alamat;
+                }
+
+                console.log(`✅ Data loaded: ${dataSiswa.length} siswa, ${dataGuru.length} guru`);
+            })
+            .catch(error => {
+                console.error('❌ Gagal load data:', error);
+                document.getElementById('saranContainer').innerHTML = 
+                    `<div class="alert alert-danger">❌ Gagal memuat data. Pastikan file data.json ada di folder data/.</div>`;
+            });
+    </script>
+
+    <!-- Load script.js setelah data dimuat -->
+    <script src="script.js"></script>
+</body>
+</html>
